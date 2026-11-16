@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter/services.dart';
 import 'package:forui/forui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -32,6 +33,9 @@ class _VehiclesPageState extends ConsumerState<VehiclesPage> {
   final TextEditingController _search = TextEditingController();
   Timer? _debounce;
 
+  /// Guards against a second row action while one is still on screen.
+  bool _busy = false;
+
   @override
   void initState() {
     super.initState();
@@ -56,10 +60,16 @@ class _VehiclesPageState extends ConsumerState<VehiclesPage> {
   }
 
   Future<void> _openForm({Vehicle? vehicle}) async {
+    if (_busy) {
+      return;
+    }
+    _busy = true;
+
     final bool? saved = await showResponsiveSheet<bool>(
       context: context,
       builder: (BuildContext _) => VehicleFormSheet(vehicle: vehicle),
     );
+    _busy = false;
 
     if (saved == true && mounted) {
       AppToast.success(
@@ -72,6 +82,18 @@ class _VehiclesPageState extends ConsumerState<VehiclesPage> {
   }
 
   Future<void> _confirmDelete(Vehicle vehicle) async {
+    if (_busy) {
+      return;
+    }
+    _busy = true;
+
+    // Let the row menu finish closing before the dialog takes the screen.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    if (!mounted) {
+      _busy = false;
+      return;
+    }
+
     final bool confirmed = await showConfirmDialog(
       context,
       title: 'Delete this vehicle?',
@@ -79,12 +101,13 @@ class _VehiclesPageState extends ConsumerState<VehiclesPage> {
           'Vehicle ${vehicle.vehicleNumber} will be removed from the registry. '
           'This cannot be undone.',
     );
+    _busy = false;
     if (!confirmed || !mounted) {
       return;
     }
 
     try {
-      await ref.read(vehicleMutationsProvider).delete(vehicle.id);
+      await ref.deleteVehicle(vehicle.id);
       if (mounted) {
         AppToast.success(context, 'Vehicle ${vehicle.vehicleNumber} deleted.');
       }
@@ -171,7 +194,8 @@ class _VehiclesPageState extends ConsumerState<VehiclesPage> {
                           child: page.isEmpty
                               ? EmptyView(
                                   icon: FLucideIcons.car,
-                                  message: query.search.isEmpty &&
+                                  message:
+                                      query.search.isEmpty &&
                                           query.status == null
                                       ? 'No vehicles registered yet.'
                                       : 'No vehicles match this search.',
@@ -230,9 +254,45 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final FThemeData theme = context.theme;
 
-    final Widget title = Text(
-      count == null ? 'Vehicles' : 'Vehicles ($count)',
-      style: theme.typography.display.xl2,
+    // The narrow layout already names the page in the header bar, so it
+    // shows the count alone and keeps the row from squeezing the title.
+    final Widget titleRow = Row(
+      children: <Widget>[
+        if (wide) ...<Widget>[
+          Flexible(
+            child: Text(
+              'Vehicles',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.typography.display.xl2,
+            ),
+          ),
+          if (count != null) ...<Widget>[
+            const SizedBox(width: 10),
+            FBadge(variant: FBadgeVariant.secondary, child: Text('$count')),
+          ],
+        ] else
+          Expanded(
+            child: Text(
+              count == null
+                  ? 'Registered vehicles'
+                  : '$count registered ${count == 1 ? 'vehicle' : 'vehicles'}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.typography.body.md.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        if (wide) const Spacer(),
+        const SizedBox(width: 12),
+        FButton(
+          mainAxisSize: MainAxisSize.min,
+          onPress: onAdd,
+          prefix: const Icon(FLucideIcons.plus),
+          child: Text(wide ? 'Add new vehicle' : 'Add'),
+        ),
+      ],
     );
 
     final Widget search = _SearchField(
@@ -245,40 +305,24 @@ class _Header extends StatelessWidget {
       onChanged: onStatusChanged,
     );
 
-    final Widget addButton = FButton(mainAxisSize: MainAxisSize.min,
-      onPress: onAdd,
-      prefix: const Icon(FLucideIcons.plus),
-      label: const Text('Add new vehicle'),
-    );
-
-    if (wide) {
-      return Row(
-        children: <Widget>[
-          title,
-          const SizedBox(width: 24),
-          SizedBox(width: 320, child: search),
-          const SizedBox(width: 12),
-          SizedBox(width: 200, child: filter),
-          const Spacer(),
-          addButton,
-        ],
-      );
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            Expanded(child: title),
-            const SizedBox(width: 12),
-            addButton,
-          ],
-        ),
+        titleRow,
         const SizedBox(height: 16),
-        search,
-        const SizedBox(height: 12),
-        filter,
+        if (wide)
+          Row(
+            children: <Widget>[
+              Expanded(child: search),
+              const SizedBox(width: 12),
+              SizedBox(width: 210, child: filter),
+            ],
+          )
+        else ...<Widget>[
+          search,
+          const SizedBox(height: 10),
+          filter,
+        ],
       ],
     );
   }
@@ -291,57 +335,52 @@ class _SearchField extends StatelessWidget {
   final ValueChanged<String> onChanged;
 
   @override
-  Widget build(BuildContext context) {
-    return TextField(
+  Widget build(BuildContext context) => FTextField(
+    control: FTextFieldControl.managed(
       controller: controller,
-      textInputAction: TextInputAction.search,
-      onChanged: onChanged,
-      decoration: InputDecoration(
-        hintText: 'Search number, brand, company, model',
-        isDense: true,
-        prefixIcon: const Icon(FLucideIcons.search),
-        suffixIcon: ValueListenableBuilder<TextEditingValue>(
-          valueListenable: controller,
-          builder: (BuildContext context, TextEditingValue value, Widget? _) {
-            if (value.text.isEmpty) {
-              return const SizedBox.shrink();
-            }
-            return FButton.icon(variant: FButtonVariant.ghost,
-              semanticsLabel: 'Clear search',
-              prefix: const Icon(FLucideIcons.x),
-              onPress: () {
-                controller.clear();
-                onChanged('');
-              },
-            );
-          },
-        ),
+      onChange: (value) => onChanged(value.text),
+    ),
+    textInputAction: TextInputAction.search,
+    hint: 'Search number, brand, company or model',
+    prefixBuilder: (BuildContext context, _, _) => Padding(
+      padding: const EdgeInsets.only(left: 12, right: 8),
+      child: Icon(
+        FLucideIcons.search,
+        size: 16,
+        color: context.theme.colors.mutedForeground,
       ),
-    );
-  }
+    ),
+    clearable: (value) => value.text.isNotEmpty,
+  );
 }
 
 class _StatusFilter extends StatelessWidget {
   const _StatusFilter({required this.status, required this.onChanged});
 
+  static const String _all = '';
+
   final VehicleStatus? status;
   final ValueChanged<VehicleStatus?> onChanged;
 
   @override
-  Widget build(BuildContext context) {
-    return DropdownButtonFormField<VehicleStatus?>(
-      initialValue: status,
-      isDense: true,
-      decoration: const InputDecoration(labelText: 'Status', isDense: true),
-      items: <DropdownMenuItem<VehicleStatus?>>[
-        const DropdownMenuItem<VehicleStatus?>(child: Text('All statuses')),
-        for (final VehicleStatus value in VehicleStatus.values)
-          DropdownMenuItem<VehicleStatus?>(
-            value: value,
-            child: Text(value.label),
-          ),
-      ],
-      onChanged: onChanged,
-    );
-  }
+  Widget build(BuildContext context) => FSelect<String>(
+    hint: 'All statuses',
+    prefixBuilder: (BuildContext context, _, _) => Padding(
+      padding: const EdgeInsets.only(left: 12, right: 8),
+      child: Icon(
+        FLucideIcons.listFilter,
+        size: 16,
+        color: context.theme.colors.mutedForeground,
+      ),
+    ),
+    items: <String, String>{
+      'All statuses': _all,
+      for (final VehicleStatus value in VehicleStatus.values)
+        value.label: value.name,
+    },
+    control: FSelectControl.lifted(
+      value: status?.name ?? _all,
+      onChange: (String? value) => onChanged(VehicleStatus.tryParse(value)),
+    ),
+  );
 }

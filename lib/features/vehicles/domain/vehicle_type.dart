@@ -35,5 +35,6 @@ enum VehicleType {
 
   /// Falls back to the raw value when the API adds a type this build does
   /// not know about yet.
-  static String labelOf(String wireName) => tryParse(wireName)?.label ?? wireName;
+  static String labelOf(String wireName) =>
+      tryParse(wireName)?.label ?? wireName;
 }

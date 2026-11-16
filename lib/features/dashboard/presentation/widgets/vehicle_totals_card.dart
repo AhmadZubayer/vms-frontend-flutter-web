@@ -10,7 +10,7 @@ import '../../../vehicles/presentation/vehicles_controller.dart';
 
 /// Total vehicles registered, and how many sit in each status.
 class VehicleTotalsCard extends ConsumerWidget {
-  const VehicleTotalsFCard({super.key});
+  const VehicleTotalsCard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -28,13 +28,14 @@ class VehicleTotalsCard extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     'Total vehicles',
-                    style: theme.typography.display.base,
+                    style: theme.typography.display.md,
                   ),
                 ),
-                FButton.icon(variant: FButtonVariant.ghost,
+                FButton.icon(
+                  variant: FButtonVariant.ghost,
                   semanticsLabel: 'Refresh',
                   onPress: () => ref.invalidate(vehicleStatsProvider),
-                  prefix: const Icon(FLucideIcons.refreshCw),
+                  child: const Icon(FLucideIcons.refreshCw),
                 ),
               ],
             ),
@@ -77,7 +78,9 @@ class _Totals extends StatelessWidget {
           ),
         ),
         Text(
-          stats.total == 1 ? 'vehicle in the registry' : 'vehicles in the registry',
+          stats.total == 1
+              ? 'vehicle in the registry'
+              : 'vehicles in the registry',
           style: theme.typography.body.sm.copyWith(
             color: theme.colors.mutedForeground,
           ),
@@ -121,10 +124,10 @@ class _StatusRow extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              Expanded(child: Text(label, style: theme.typography.body.base)),
+              Expanded(child: Text(label, style: theme.typography.body.md)),
               Text(
                 '$count',
-                style: theme.typography.body.base.copyWith(
+                style: theme.typography.body.md.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -133,11 +136,7 @@ class _StatusRow extends StatelessWidget {
           const SizedBox(height: 6),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: share,
-              minHeight: 6,
-              backgroundColor: theme.colors.muted,
-            ),
+            child: FDeterminateProgress(value: share),
           ),
         ],
       ),

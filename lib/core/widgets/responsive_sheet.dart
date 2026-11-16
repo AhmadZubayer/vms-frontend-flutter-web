@@ -3,60 +3,44 @@ import 'package:forui/forui.dart';
 
 import '../config/app_config.dart';
 
-/// Opens [builder] as a panel sliding in from the right on a wide window, and
-/// from the bottom on a narrow one.
+/// Opens [builder] as a panel: sliding in from the right and covering 40% of
+/// a desktop window, and rising from the bottom on a narrow one.
+///
+/// The panel paints its own opaque background, so the page behind it only
+/// shows through the scrim.
 Future<T?> showResponsiveSheet<T>({
   required BuildContext context,
   required WidgetBuilder builder,
-  double width = 460,
 }) {
-  final bool wide =
-      MediaQuery.sizeOf(context).width >= AppConfig.wideLayoutBreakpoint;
+  final Size screen = MediaQuery.sizeOf(context);
+  final bool wide = screen.width >= AppConfig.wideLayoutBreakpoint;
 
-  if (!wide) {
-    return showModalBottomSheet<T>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      showDragHandle: true,
-      builder: builder,
-    );
-  }
+  // 40% of the window, kept readable on very wide and very narrow desktops.
+  final double width = (screen.width * AppConfig.sideSheetWidthRatio).clamp(
+    AppConfig.sideSheetMinWidth,
+    AppConfig.sideSheetMaxWidth,
+  );
 
-  return showGeneralDialog<T>(
+  return showFSheet<T>(
     context: context,
-    barrierDismissible: true,
-    barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
-    barrierColor: Colors.black54,
-    transitionDuration: const Duration(milliseconds: 220),
-    pageBuilder: (BuildContext context, Animation<double> _, Animation<double> _) {
-      return Align(
-        alignment: Alignment.centerRight,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: width,
-            minWidth: width,
-            maxHeight: MediaQuery.sizeOf(context).height,
-          ),
-          child: Material(
-            color: Theme.of(context).colorScheme.surface,
-            child: SafeArea(child: Builder(builder: builder)),
-          ),
+    side: wide ? FLayout.rtl : FLayout.btt,
+    mainAxisMaxRatio: wide ? null : 0.92,
+    constraints: wide
+        ? BoxConstraints.tightFor(width: width)
+        : const BoxConstraints(),
+    useSafeArea: true,
+    builder: (BuildContext sheetContext) {
+      final FThemeData theme = sheetContext.theme;
+
+      return Container(
+        height: wide ? MediaQuery.sizeOf(sheetContext).height : null,
+        decoration: BoxDecoration(
+          color: theme.colors.background,
+          border: wide
+              ? Border(left: BorderSide(color: theme.colors.border))
+              : null,
         ),
-      );
-    },
-    transitionBuilder: (
-      BuildContext context,
-      Animation<double> animation,
-      Animation<double> _,
-      Widget child,
-    ) {
-      return SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(1, 0),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
-        child: child,
+        child: SafeArea(top: false, child: Builder(builder: builder)),
       );
     },
   );

@@ -55,10 +55,7 @@ class ApiClient {
     handler.next(options);
   }
 
-  void _noteExpiredToken(
-    DioException error,
-    ErrorInterceptorHandler handler,
-  ) {
+  void _noteExpiredToken(DioException error, ErrorInterceptorHandler handler) {
     final bool rejectedToken = error.response?.statusCode == 401;
     // A rejected sign-in is a wrong password, not an expired session.
     if (rejectedToken && error.requestOptions.path != _loginPath) {
@@ -67,10 +64,8 @@ class ApiClient {
     handler.next(error);
   }
 
-  Future<dynamic> get(
-    String path, {
-    Map<String, dynamic>? query,
-  }) => _send(() => _dio.get<dynamic>(path, queryParameters: query));
+  Future<dynamic> get(String path, {Map<String, dynamic>? query}) =>
+      _send(() => _dio.get<dynamic>(path, queryParameters: query));
 
   Future<dynamic> post(String path, {Object? body}) =>
       _send(() => _dio.post<dynamic>(path, data: body));

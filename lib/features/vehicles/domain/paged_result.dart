@@ -31,7 +31,8 @@ class PagedResult<T> {
     Map<String, dynamic> json,
     T Function(Map<String, dynamic> item) readItem,
   ) {
-    final List<dynamic> content = (json['content'] as List<dynamic>?) ?? <dynamic>[];
+    final List<dynamic> content =
+        (json['content'] as List<dynamic>?) ?? <dynamic>[];
     final Map<String, dynamic> page = Map<String, dynamic>.from(
       (json['page'] as Map?) ?? <String, dynamic>{},
     );
@@ -40,7 +41,9 @@ class PagedResult<T> {
 
     return PagedResult<T>(
       items: content
-          .map((dynamic item) => readItem(Map<String, dynamic>.from(item as Map)))
+          .map(
+            (dynamic item) => readItem(Map<String, dynamic>.from(item as Map)),
+          )
           .toList(growable: false),
       pageNumber: readInt('number'),
       pageSize: readInt('size'),

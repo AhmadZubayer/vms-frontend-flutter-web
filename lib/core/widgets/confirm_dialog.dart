@@ -1,9 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 
-/// Asks before an action that cannot be undone.
-///
-/// Answers `true` only when the person chose [confirmLabel].
 Future<bool> showConfirmDialog(
   BuildContext context, {
   required String title,
@@ -11,29 +8,48 @@ Future<bool> showConfirmDialog(
   String confirmLabel = 'Delete',
   String cancelLabel = 'Cancel',
 }) async {
-  final bool? confirmed = await showDialog<bool>(
+  // The root navigator keeps the dialog above the sheet, popover or page
+  // that asked for it, and the barrier only closes it through Cancel.
+  final confirmed = await showFDialog<bool>(
     context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: <Widget>[
-          FButton(variant: FButtonVariant.ghost, mainAxisSize: MainAxisSize.min,
-            onPress: () => Navigator.of(context).pop(false),
-            child: Text(cancelLabel),
-          ),
-          FButton(mainAxisSize: MainAxisSize.min,
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Theme.of(context).colorScheme.onError,
+    useRootNavigator: true,
+    barrierDismissible: false,
+    builder: (context, style, animation) => FDialog(
+      style: style,
+      animation: animation,
+      builder: (context, style) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(title, style: context.theme.typography.display.lg),
+            const SizedBox(height: 12),
+            Text(message, style: context.theme.typography.body.md),
+            const SizedBox(height: 24),
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                FButton(
+                  variant: FButtonVariant.outline,
+                  mainAxisSize: MainAxisSize.min,
+                  onPress: () => Navigator.of(context).pop(false),
+                  child: Text(cancelLabel),
+                ),
+                FButton(
+                  variant: FButtonVariant.destructive,
+                  mainAxisSize: MainAxisSize.min,
+                  onPress: () => Navigator.of(context).pop(true),
+                  child: Text(confirmLabel),
+                ),
+              ],
             ),
-            onPress: () => Navigator.of(context).pop(true),
-            child: Text(confirmLabel),
-          ),
-        ],
-      );
-    },
+          ],
+        ),
+      ),
+    ),
   );
-
   return confirmed ?? false;
 }

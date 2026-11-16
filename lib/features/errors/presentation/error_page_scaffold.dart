@@ -23,8 +23,8 @@ class ErrorPageScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final FThemeData theme = context.theme;
 
-    return Scaffold(
-      body: SafeArea(
+    return FScaffold(
+      child: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
@@ -51,7 +51,7 @@ class ErrorPageScaffold extends StatelessWidget {
                   Text(
                     message,
                     textAlign: TextAlign.center,
-                    style: theme.typography.body.base.copyWith(
+                    style: theme.typography.body.md.copyWith(
                       color: theme.colors.mutedForeground,
                     ),
                   ),

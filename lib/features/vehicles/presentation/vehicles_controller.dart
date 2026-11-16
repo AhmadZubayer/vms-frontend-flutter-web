@@ -51,8 +51,11 @@ class VehicleQueryController extends Notifier<VehicleQuery> {
     status: state.status,
   );
 
-  void filterByStatus(VehicleStatus? status) =>
-      state = VehicleQuery(size: state.size, search: state.search, status: status);
+  void filterByStatus(VehicleStatus? status) => state = VehicleQuery(
+    size: state.size,
+    search: state.search,
+    status: status,
+  );
 
   void goToPage(int page) => state = VehicleQuery(
     page: page < 0 ? 0 : page,
@@ -73,12 +76,14 @@ final FutureProvider<PagedResult<Vehicle>> vehiclesPageProvider =
     FutureProvider<PagedResult<Vehicle>>((Ref ref) {
       final VehicleQuery query = ref.watch(vehicleQueryProvider);
 
-      return ref.watch(vehiclesRepositoryProvider).fetchPage(
-        page: query.page,
-        size: query.size,
-        query: query.search,
-        status: query.status,
-      );
+      return ref
+          .watch(vehiclesRepositoryProvider)
+          .fetchPage(
+            page: query.page,
+            size: query.size,
+            query: query.search,
+            status: query.status,
+          );
     });
 
 /// Registry totals for the dashboard cards.
@@ -87,32 +92,31 @@ final FutureProvider<VehicleStats> vehicleStatsProvider =
       (Ref ref) => ref.watch(vehiclesRepositoryProvider).fetchStats(),
     );
 
-final Provider<VehicleMutations> vehicleMutationsProvider =
-    Provider<VehicleMutations>(VehicleMutations.new);
-
-/// Writes to the registry, then refreshes everything that reads it.
-class VehicleMutations {
-  const VehicleMutations(this._ref);
-
-  final Ref _ref;
-
-  Future<void> create(VehicleDraft draft) async {
-    await _ref.read(vehiclesRepositoryProvider).create(draft);
-    _refresh();
+/// Writes to the registry from a widget, then reloads what reads it.
+///
+/// The reload is awaited, so by the time a form closes or a toast appears the
+/// table and the dashboard totals already hold the new data.
+extension VehicleWrites on WidgetRef {
+  Future<void> createVehicle(VehicleDraft draft) async {
+    await read(vehiclesRepositoryProvider).create(draft);
+    await reloadVehicles();
   }
 
-  Future<void> update(int id, VehicleDraft draft) async {
-    await _ref.read(vehiclesRepositoryProvider).update(id, draft);
-    _refresh();
+  Future<void> updateVehicle(int id, VehicleDraft draft) async {
+    await read(vehiclesRepositoryProvider).update(id, draft);
+    await reloadVehicles();
   }
 
-  Future<void> delete(int id) async {
-    await _ref.read(vehiclesRepositoryProvider).delete(id);
-    _refresh();
+  Future<void> deleteVehicle(int id) async {
+    await read(vehiclesRepositoryProvider).delete(id);
+    await reloadVehicles();
   }
 
-  void _refresh() {
-    _ref.invalidate(vehiclesPageProvider);
-    _ref.invalidate(vehicleStatsProvider);
+  /// Re-reads the current page and the registry totals from the API.
+  Future<void> reloadVehicles() async {
+    invalidate(vehicleStatsProvider);
+    // The awaited refetch is the point: the caller resumes with fresh data.
+    // ignore: unused_result
+    await refresh(vehiclesPageProvider.future);
   }
 }

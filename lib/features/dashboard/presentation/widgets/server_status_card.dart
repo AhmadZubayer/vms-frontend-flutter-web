@@ -11,7 +11,7 @@ import '../../domain/server_health.dart';
 
 /// What `GET /api/health` says about the API and its database.
 class ServerStatusCard extends ConsumerWidget {
-  const ServerStatusFCard({super.key});
+  const ServerStatusCard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -29,13 +29,14 @@ class ServerStatusCard extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     'Server status',
-                    style: theme.typography.display.base,
+                    style: theme.typography.display.md,
                   ),
                 ),
-                FButton.icon(variant: FButtonVariant.ghost,
+                FButton.icon(
+                  variant: FButtonVariant.ghost,
                   semanticsLabel: 'Check again',
                   onPress: () => ref.invalidate(serverHealthProvider),
-                  prefix: const Icon(FLucideIcons.refreshCw),
+                  child: const Icon(FLucideIcons.refreshCw),
                 ),
               ],
             ),
@@ -67,10 +68,12 @@ class ServerStatusCard extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  FButton(variant: FButtonVariant.outline, mainAxisSize: MainAxisSize.min,
+                  FButton(
+                    variant: FButtonVariant.outline,
+                    mainAxisSize: MainAxisSize.min,
                     onPress: () => ref.invalidate(serverHealthProvider),
                     prefix: const Icon(FLucideIcons.refreshCw),
-                    label: const Text('Try again'),
+                    child: const Text('Try again'),
                   ),
                 ],
               ),
@@ -128,13 +131,13 @@ class _StatusLine extends StatelessWidget {
           Icon(
             reachable ? FLucideIcons.circleCheck : FLucideIcons.circleX,
             size: 20,
-            color: reachable ? AppTheme.success : theme.colorScheme.error,
+            color: reachable ? AppTheme.success : theme.colors.error,
           ),
           const SizedBox(width: 12),
-          Expanded(child: Text(label, style: theme.typography.body.base)),
+          Expanded(child: Text(label, style: theme.typography.body.md)),
           Text(
             value,
-            style: theme.typography.body.base.copyWith(
+            style: theme.typography.body.md.copyWith(
               fontWeight: FontWeight.w600,
             ),
           ),

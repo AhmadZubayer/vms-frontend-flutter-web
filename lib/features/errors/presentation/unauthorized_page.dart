@@ -27,7 +27,8 @@ class UnauthorizedPage extends ConsumerWidget {
           ? 'The access token is no longer accepted. Sign in again to carry on.'
           : 'This page is only available to a signed-in operator.',
       actions: <Widget>[
-        FButton(mainAxisSize: MainAxisSize.min,
+        FButton(
+          mainAxisSize: MainAxisSize.min,
           onPress: () {
             ref.read(authControllerProvider.notifier).acknowledgeSessionEnd();
             context.go(AppRoutes.login);

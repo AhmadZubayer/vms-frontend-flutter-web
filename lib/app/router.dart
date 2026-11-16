@@ -24,7 +24,7 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
   ref.onDispose(sessionChanges.dispose);
 
   return GoRouter(
-    initialLocation: AppRoutes.dashboard,
+    initialLocation: AppRoutes.root,
     refreshListenable: sessionChanges,
     redirect: (BuildContext context, GoRouterState state) {
       final AuthState auth = ref.read(authControllerProvider);
@@ -60,8 +60,10 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
         NotFoundPage(location: state.uri.path),
     routes: <RouteBase>[
       GoRoute(
+        // The site root is the sign-in screen; a signed-in operator is sent
+        // on to the dashboard by the redirect above.
         path: AppRoutes.root,
-        redirect: (BuildContext _, GoRouterState _) => AppRoutes.dashboard,
+        redirect: (BuildContext _, GoRouterState _) => AppRoutes.login,
       ),
       GoRoute(
         path: AppRoutes.login,

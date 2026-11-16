@@ -41,14 +41,16 @@ class ErrorView extends StatelessWidget {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: theme.typography.body.base,
+            style: theme.typography.body.md,
           ),
           if (onRetry != null) ...<Widget>[
             const SizedBox(height: 16),
-            FButton(variant: FButtonVariant.outline, mainAxisSize: MainAxisSize.min,
+            FButton(
+              variant: FButtonVariant.outline,
+              mainAxisSize: MainAxisSize.min,
               onPress: onRetry,
               prefix: const Icon(FLucideIcons.refreshCw),
-              label: const Text('Try again'),
+              child: const Text('Try again'),
             ),
           ],
         ],
@@ -82,7 +84,7 @@ class EmptyView extends StatelessWidget {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: theme.typography.body.base.copyWith(
+            style: theme.typography.body.md.copyWith(
               color: theme.colors.mutedForeground,
             ),
           ),

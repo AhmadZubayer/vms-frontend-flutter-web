@@ -4,10 +4,10 @@ import 'package:forui/forui.dart';
 import '../../domain/vehicle.dart';
 import 'status_chip.dart';
 
-/// What the row menu was asked to do.
 enum VehicleRowAction { update, delete }
 
-/// The vehicle list, one row per vehicle, with a row menu on the right.
+/// The vehicle list: a table on a wide window, stacked cards on a narrow one,
+/// so nothing has to be scrolled sideways to be read.
 class VehiclesTable extends StatelessWidget {
   const VehiclesTable({
     super.key,
@@ -15,92 +15,225 @@ class VehiclesTable extends StatelessWidget {
     required this.onAction,
   });
 
+  /// Below this width the rows are drawn as cards instead of table rows.
+  static const double _tableBreakpoint = 820;
+
   final List<Vehicle> vehicles;
   final void Function(Vehicle vehicle, VehicleRowAction action) onAction;
 
   @override
   Widget build(BuildContext context) {
-    return Scrollbar(
-      thumbVisibility: true,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minWidth: MediaQuery.sizeOf(context).width < 900 ? 900 : 0,
-          ),
-          child: DataTable(
-            columnSpacing: 28,
-            headingRowHeight: 48,
-            dataRowMinHeight: 52,
-            dataRowMaxHeight: 60,
-            columns: const <DataColumn>[
-              DataColumn(label: Text('Vehicle number')),
-              DataColumn(label: Text('Brand')),
-              DataColumn(label: Text('Company')),
-              DataColumn(label: Text('Model')),
-              DataColumn(label: Text('Type')),
-              DataColumn(label: Text('Status')),
-              DataColumn(label: Text('Actions')),
-            ],
-            rows: <DataRow>[
-              for (final Vehicle vehicle in vehicles)
-                DataRow(
-                  key: ValueKey<int>(vehicle.id),
-                  cells: <DataCell>[
-                    DataCell(Text(vehicle.vehicleNumber)),
-                    DataCell(Text(vehicle.brand)),
-                    DataCell(Text(vehicle.company)),
-                    DataCell(Text(vehicle.model)),
-                    DataCell(Text(vehicle.typeLabel)),
-                    DataCell(StatusChip(label: vehicle.statusLabel)),
-                    DataCell(
-                      _RowMenu(
-                        vehicle: vehicle,
-                        onAction: (VehicleRowAction action) =>
-                            onAction(vehicle, action),
-                      ),
-                    ),
-                  ],
-                ),
-            ],
-          ),
-        ),
-      ),
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        return constraints.maxWidth < _tableBreakpoint
+            ? _CardList(vehicles: vehicles, onAction: onAction)
+            : _Table(vehicles: vehicles, onAction: onAction);
+      },
     );
   }
 }
 
-class _RowMenu extends StatelessWidget {
-  const _RowMenu({required this.vehicle, required this.onAction});
+class _Table extends StatelessWidget {
+  const _Table({required this.vehicles, required this.onAction});
 
-  final Vehicle vehicle;
-  final ValueChanged<VehicleRowAction> onAction;
+  final List<Vehicle> vehicles;
+  final void Function(Vehicle vehicle, VehicleRowAction action) onAction;
+
+  Widget _cell(Widget child) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    child: child,
+  );
+
+  Widget _text(BuildContext context, String value, {bool strong = false}) =>
+      Text(
+        value,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: context.theme.typography.body.sm.copyWith(
+          fontWeight: strong ? FontWeight.w600 : FontWeight.w400,
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<VehicleRowAction>(
-      prefix: const Icon(FLucideIcons.ellipsisVertical),
-      semanticsLabel: 'Actions for ${vehicle.vehicleNumber}',
-      onSelected: onAction,
-      itemBuilder: (BuildContext context) =>
-          const <PopupMenuEntry<VehicleRowAction>>[
-            PopupMenuItem<VehicleRowAction>(
-              value: VehicleRowAction.update,
-              child: ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(FLucideIcons.pencil),
-                title: Text('Update'),
+    final FThemeData theme = context.theme;
+
+    return Table(
+      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+      columnWidths: const <int, TableColumnWidth>{
+        0: FlexColumnWidth(1.3),
+        1: FlexColumnWidth(1),
+        2: FlexColumnWidth(1.2),
+        3: FlexColumnWidth(1),
+        4: FlexColumnWidth(0.8),
+        5: IntrinsicColumnWidth(),
+        6: FixedColumnWidth(72),
+      },
+      border: TableBorder(
+        horizontalInside: BorderSide(color: theme.colors.border),
+      ),
+      children: <TableRow>[
+        TableRow(
+          decoration: BoxDecoration(color: theme.colors.muted),
+          children: <Widget>[
+            for (final String label in <String>[
+              'Vehicle number',
+              'Brand',
+              'Company',
+              'Model',
+              'Type',
+              'Status',
+              '',
+            ])
+              _cell(
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.typography.body.xs.copyWith(
+                    color: theme.colors.mutedForeground,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.4,
+                  ),
+                ),
               ),
+          ],
+        ),
+        for (final Vehicle vehicle in vehicles)
+          TableRow(
+            key: ValueKey<int>(vehicle.id),
+            children: <Widget>[
+              _cell(_text(context, vehicle.vehicleNumber, strong: true)),
+              _cell(_text(context, vehicle.brand)),
+              _cell(_text(context, vehicle.company)),
+              _cell(_text(context, vehicle.model)),
+              _cell(_text(context, vehicle.typeLabel)),
+              _cell(
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: StatusChip(label: vehicle.statusLabel),
+                ),
+              ),
+              _cell(RowMenu(vehicle: vehicle, onAction: onAction)),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
+class _CardList extends StatelessWidget {
+  const _CardList({required this.vehicles, required this.onAction});
+
+  final List<Vehicle> vehicles;
+  final void Function(Vehicle vehicle, VehicleRowAction action) onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final FThemeData theme = context.theme;
+
+    return Column(
+      children: <Widget>[
+        for (final Vehicle vehicle in vehicles)
+          Container(
+            key: ValueKey<int>(vehicle.id),
+            padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: theme.colors.border)),
             ),
-            PopupMenuItem<VehicleRowAction>(
-              value: VehicleRowAction.delete,
-              child: ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(FLucideIcons.trash2),
-                title: Text('Delete'),
-              ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Row(
+                        children: <Widget>[
+                          Flexible(
+                            child: Text(
+                              vehicle.vehicleNumber,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.typography.body.md.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          StatusChip(label: vehicle.statusLabel),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${vehicle.brand} ${vehicle.model} · ${vehicle.typeLabel}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.typography.body.sm,
+                      ),
+                      Text(
+                        vehicle.company,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.typography.body.xs.copyWith(
+                          color: theme.colors.mutedForeground,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                RowMenu(vehicle: vehicle, onAction: onAction),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// The three-dot menu that offers Update and Delete for one vehicle.
+class RowMenu extends StatelessWidget {
+  const RowMenu({super.key, required this.vehicle, required this.onAction});
+
+  final Vehicle vehicle;
+  final void Function(Vehicle vehicle, VehicleRowAction action) onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return FPopoverMenu(
+      menuAnchor: Alignment.topRight,
+      childAnchor: Alignment.bottomRight,
+      menuBuilder: (BuildContext context, FPopoverController controller, _) =>
+          [
+            FItemGroup(
+              children: [
+                FItem(
+                  prefix: const Icon(FLucideIcons.pencil),
+                  title: const Text('Update'),
+                  onPress: () async {
+                    await controller.hide();
+                    onAction(vehicle, VehicleRowAction.update);
+                  },
+                ),
+                FItem(
+                  variant: FItemVariant.destructive,
+                  prefix: const Icon(FLucideIcons.trash2),
+                  title: const Text('Delete'),
+                  onPress: () async {
+                    await controller.hide();
+                    onAction(vehicle, VehicleRowAction.delete);
+                  },
+                ),
+              ],
             ),
           ],
+      builder: (BuildContext context, FPopoverController controller, _) =>
+          FButton.icon(
+            variant: FButtonVariant.ghost,
+            semanticsLabel: 'Actions for ${vehicle.vehicleNumber}',
+            onPress: controller.toggle,
+            child: const Icon(FLucideIcons.ellipsisVertical),
+          ),
     );
   }
 }

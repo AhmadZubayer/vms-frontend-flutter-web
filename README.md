@@ -3,6 +3,29 @@
 Operator client for the Stark Vehicle Management API: sign in, read the registry
 totals and backend health, and manage vehicles.
 
+## Configure it
+
+Copy `.env.example` to `.env` and set the API it should talk to. No URL is
+written into the Dart code.
+
+```
+API_BASE_URL=http://localhost:8080
+```
+
+| Where it runs | Value |
+| --- | --- |
+| Web or desktop against a local API | `http://localhost:8080` |
+| Android emulator against a local API | `http://10.0.2.2:8080` |
+| Deployed | `https://api.example.com` |
+
+The file is bundled as an asset and read at start-up, so a built web app can be
+re-pointed by editing `build/web/assets/.env` without rebuilding. A
+`--dart-define=API_BASE_URL=...` passed at build time wins over the file, which
+suits CI. If neither is set the app stops with a message naming the variable.
+
+Whatever origin serves this app has to appear in the backend
+`APP_CORS_ALLOWED_ORIGIN_PATTERNS`, or the browser blocks the calls.
+
 ## Run it
 
 Start `vms-backend` first, then:
@@ -12,18 +35,31 @@ flutter pub get
 flutter run -d chrome
 ```
 
-The API base URL defaults to `http://localhost:8080`. Point the app somewhere
-else at build time:
+## Deploy to Netlify
 
-```
-flutter run -d chrome --dart-define=VMS_API_BASE_URL=http://127.0.0.1:8080
-```
+Netlify has no Flutter runtime, so [`netlify.toml`](netlify.toml) runs
+[`scripts/netlify_build.sh`](scripts/netlify_build.sh), which fetches the SDK,
+writes `.env` from the site's own environment variables, and builds.
 
-On an Android emulator the host machine is `http://10.0.2.2:8080`.
+1. Push this repository to GitHub.
+2. In Netlify, **Add new site > Import an existing project**, pick the
+   repository. The build command and publish directory come from
+   `netlify.toml`; leave them as Netlify fills them in.
+3. Under **Site configuration > Environment variables** add `API_BASE_URL`,
+   the deployed API with no trailing slash, e.g.
+   `https://stark-vms-api.onrender.com`. The build fails with a clear message
+   if it is missing, rather than shipping a broken app. `FLUTTER_VERSION` is
+   optional and defaults to the version pinned in `netlify.toml`.
+4. Deploy, then add the Netlify origin, e.g. `https://stark-vms.netlify.app`,
+   to the backend `APP_CORS_ALLOWED_ORIGIN_PATTERNS` and redeploy the API.
+   Without that the browser blocks every call.
 
-The backend answers browser requests from `http://localhost:*` and
-`http://127.0.0.1:*` out of the box; any other origin has to be added to
-`APP_CORS_ALLOWED_ORIGIN_PATTERNS` in the backend `.env`.
+`netlify.toml` also rewrites every unmatched path to `index.html`, which the
+app needs because it routes on real paths: without it, reloading
+`/dashboard/vehicles` would 404.
+
+To change the API later without a rebuild, edit `assets/.env` in the published
+deploy; to change it permanently, update `API_BASE_URL` and redeploy.
 
 ## Routes
 

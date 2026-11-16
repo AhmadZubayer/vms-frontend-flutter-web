@@ -1,0 +1,2 @@
+# The app routes on real paths, so anything that is not a file is the app.
+/*  /index.html  200

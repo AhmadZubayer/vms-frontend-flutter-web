@@ -1,0 +1,42 @@
+# Netlify build for the Flutter web client.
+#
+# Netlify has no Flutter runtime, so scripts/netlify_build.sh fetches the SDK,
+# writes .env from the site's own environment variables, and builds.
+#
+# Set these in Netlify under Site configuration > Environment variables:
+#   API_BASE_URL    required, e.g. https://stark-vms-api.onrender.com
+#   FLUTTER_VERSION optional, defaults to the version below
+
+[build]
+  command = "bash scripts/netlify_build.sh"
+  publish = "build/web"
+
+[build.environment]
+  FLUTTER_VERSION = "3.44.9"
+
+# The app routes on real paths (/login, /dashboard/vehicles), so every request
+# that is not a file has to be answered with index.html, or a reload 404s.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Flutter web output keeps stable file names (main.dart.js, assets/.env), so
+# nothing here is cached hard; Netlify revalidates with ETags. The entry points
+# must not be cached at all, or a deploy goes unnoticed.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/flutter_service_worker.js"
+  [headers.values]
+    Cache-Control = "no-cache"

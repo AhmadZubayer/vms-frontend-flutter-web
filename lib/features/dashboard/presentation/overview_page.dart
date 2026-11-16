@@ -28,7 +28,7 @@ class OverviewPage extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 'Registry totals and the state of the backend.',
-                style: theme.typography.body.base.copyWith(
+                style: theme.typography.body.md.copyWith(
                   color: theme.colors.mutedForeground,
                 ),
               ),
@@ -37,17 +37,17 @@ class OverviewPage extends StatelessWidget {
                 const Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Expanded(flex: 3, child: VehicleTotalsFCard()),
+                    Expanded(flex: 3, child: VehicleTotalsCard()),
                     SizedBox(width: 24),
-                    Expanded(flex: 2, child: ServerStatusFCard()),
+                    Expanded(flex: 2, child: ServerStatusCard()),
                   ],
                 )
               else
                 const Column(
                   children: <Widget>[
-                    VehicleTotalsFCard(),
+                    VehicleTotalsCard(),
                     SizedBox(height: 16),
-                    ServerStatusFCard(),
+                    ServerStatusCard(),
                   ],
                 ),
             ],

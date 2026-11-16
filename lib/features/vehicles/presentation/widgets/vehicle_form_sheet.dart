@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter/services.dart';
 import 'package:forui/forui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -80,12 +81,11 @@ class _VehicleFormSheetState extends ConsumerState<VehicleFormSheet> {
     );
 
     try {
-      final VehicleMutations mutations = ref.read(vehicleMutationsProvider);
       final Vehicle? existing = widget.vehicle;
       if (existing == null) {
-        await mutations.create(draft);
+        await ref.createVehicle(draft);
       } else {
-        await mutations.update(existing.id, draft);
+        await ref.updateVehicle(existing.id, draft);
       }
 
       if (mounted) {
@@ -133,118 +133,116 @@ class _VehicleFormSheetState extends ConsumerState<VehicleFormSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final FThemeData theme = context.theme;
-
     return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
+      children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 12, 8),
+          padding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
           child: Row(
-            children: <Widget>[
+            children: [
               Expanded(
                 child: Text(
                   widget.isUpdate ? 'Update vehicle' : 'Add new vehicle',
-                  style: theme.typography.display.xl,
+                  style: context.theme.typography.display.lg,
                 ),
               ),
-              FButton.icon(variant: FButtonVariant.ghost,
+              FButton.icon(
+                variant: FButtonVariant.ghost,
                 semanticsLabel: 'Close',
                 onPress: _saving ? null : () => Navigator.of(context).pop(),
-                prefix: const Icon(FLucideIcons.x),
+                child: const Icon(FLucideIcons.x),
               ),
             ],
           ),
         ),
         const FDivider(),
-        Flexible(
+        Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+            padding: const EdgeInsets.all(24),
             child: Form(
               key: _form,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  if (_failure != null) ...<Widget>[
-                    _FormFailure(message: _failure!),
-                    const SizedBox(height: 16),
-                  ],
-                  TextFormField(
-                    controller: _vehicleNumber,
+                spacing: 16,
+                children: [
+                  if (_failure != null)
+                    FAlert(
+                      variant: FAlertVariant.destructive,
+                      icon: const Icon(FLucideIcons.circleAlert),
+                      title: Text(_failure!),
+                    ),
+                  FTextFormField(
+                    control: FTextFieldControl.managed(
+                      controller: _vehicleNumber,
+                      onChange: (_) => _clearServerError('vehicleNumber'),
+                    ),
                     autofocus: true,
+                    enabled: !_saving,
                     maxLength: 64,
                     textCapitalization: TextCapitalization.characters,
-                    decoration: const InputDecoration(
-                      labelText: 'Vehicle number',
-                      helperText: 'Unique across the registry',
-                    ),
-                    onChanged: (String _) => _clearServerError('vehicleNumber'),
-                    validator: (String? value) => _validateText(
-                      'vehicleNumber',
-                      value,
-                      'vehicle number',
-                    ),
+                    label: const Text('Vehicle number'),
+                    description: const Text('Unique across the registry'),
+                    validator: (value) =>
+                        _validateText('vehicleNumber', value, 'vehicle number'),
                   ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _brand,
+                  FTextFormField(
+                    control: FTextFieldControl.managed(
+                      controller: _brand,
+                      onChange: (_) => _clearServerError('brand'),
+                    ),
+                    enabled: !_saving,
                     maxLength: 100,
-                    decoration: const InputDecoration(labelText: 'Brand'),
-                    onChanged: (String _) => _clearServerError('brand'),
-                    validator: (String? value) =>
+                    label: const Text('Brand'),
+                    validator: (value) =>
                         _validateText('brand', value, 'brand'),
                   ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _company,
+                  FTextFormField(
+                    control: FTextFieldControl.managed(
+                      controller: _company,
+                      onChange: (_) => _clearServerError('company'),
+                    ),
+                    enabled: !_saving,
                     maxLength: 100,
-                    decoration: const InputDecoration(labelText: 'Company'),
-                    onChanged: (String _) => _clearServerError('company'),
-                    validator: (String? value) =>
+                    label: const Text('Company'),
+                    validator: (value) =>
                         _validateText('company', value, 'company'),
                   ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _model,
+                  FTextFormField(
+                    control: FTextFieldControl.managed(
+                      controller: _model,
+                      onChange: (_) => _clearServerError('model'),
+                    ),
+                    enabled: !_saving,
                     maxLength: 100,
-                    decoration: const InputDecoration(labelText: 'Model'),
-                    onChanged: (String _) => _clearServerError('model'),
-                    validator: (String? value) =>
+                    label: const Text('Model'),
+                    validator: (value) =>
                         _validateText('model', value, 'model'),
                   ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<VehicleType>(
-                    initialValue: _type,
-                    decoration: const InputDecoration(labelText: 'Type'),
-                    items: <DropdownMenuItem<VehicleType>>[
-                      for (final VehicleType type in VehicleType.values)
-                        DropdownMenuItem<VehicleType>(
-                          value: type,
-                          child: Text(type.label),
-                        ),
-                    ],
-                    onChanged: (VehicleType? value) {
-                      if (value != null) {
-                        setState(() => _type = value);
-                      }
+                  FSelect<VehicleType>(
+                    label: const Text('Type'),
+                    enabled: !_saving,
+                    items: {
+                      for (final type in VehicleType.values) type.label: type,
                     },
+                    control: FSelectControl.lifted(
+                      value: _type,
+                      onChange: (value) {
+                        if (value != null) setState(() => _type = value);
+                      },
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<VehicleStatus>(
-                    initialValue: _status,
-                    decoration: const InputDecoration(labelText: 'Status'),
-                    items: <DropdownMenuItem<VehicleStatus>>[
-                      for (final VehicleStatus status in VehicleStatus.values)
-                        DropdownMenuItem<VehicleStatus>(
-                          value: status,
-                          child: Text(status.label),
-                        ),
-                    ],
-                    onChanged: (VehicleStatus? value) {
-                      if (value != null) {
-                        setState(() => _status = value);
-                      }
+                  FSelect<VehicleStatus>(
+                    label: const Text('Status'),
+                    enabled: !_saving,
+                    items: {
+                      for (final status in VehicleStatus.values)
+                        status.label: status,
                     },
+                    control: FSelectControl.lifted(
+                      value: _status,
+                      onChange: (value) {
+                        if (value != null) setState(() => _status = value);
+                      },
+                    ),
                   ),
                 ],
               ),
@@ -256,19 +254,24 @@ class _VehicleFormSheetState extends ConsumerState<VehicleFormSheet> {
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
-            children: <Widget>[
-              FButton(variant: FButtonVariant.ghost, mainAxisSize: MainAxisSize.min,
+            children: [
+              FButton(
+                variant: FButtonVariant.outline,
+                mainAxisSize: MainAxisSize.min,
                 onPress: _saving ? null : () => Navigator.of(context).pop(),
                 child: const Text('Cancel'),
               ),
               const SizedBox(width: 12),
-              FButton(mainAxisSize: MainAxisSize.min,
+              FButton(
+                mainAxisSize: MainAxisSize.min,
                 onPress: _saving ? null : _save,
                 child: _saving
-                    ? const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: FCircularProgress(),
+                    ? FCircularProgress(
+                        style: .delta(
+                          iconStyle: .delta(
+                            color: context.theme.colors.primaryForeground,
+                          ),
+                        ),
                       )
                     : Text(widget.isUpdate ? 'Save changes' : 'Add vehicle'),
               ),
@@ -276,43 +279,6 @@ class _VehicleFormSheetState extends ConsumerState<VehicleFormSheet> {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _FormFailure extends StatelessWidget {
-  const _FormFailure({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final FThemeData theme = context.theme;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: theme.colors.error,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: <Widget>[
-          Icon(
-            FLucideIcons.circleAlert,
-            size: 18,
-            color: theme.colors.errorForeground,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              message,
-              style: theme.typography.body.sm.copyWith(
-                color: theme.colors.errorForeground,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -1,43 +1,42 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart' show MaterialApp, ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'package:forui/forui.dart';
 
 import '../features/auth/domain/auth_state.dart';
 import '../features/auth/presentation/auth_controller.dart';
 import 'router.dart';
 import 'theme.dart';
 
-/// Root of the app.
-///
-/// While the stored token is being checked there is nothing to route to yet,
-/// so the splash is shown and the router is built once the session is known.
 class StarkVmsApp extends ConsumerWidget {
   const StarkVmsApp({super.key});
-
   static const String title = 'Stark VMS';
+
+  Widget _builder(BuildContext context, Widget? child) => FTheme(
+    data: AppTheme.light,
+    child: FToaster(child: FTooltipGroup(child: child!)),
+  );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final AuthState auth = ref.watch(authControllerProvider);
-
+    final auth = ref.watch(authControllerProvider);
     if (auth is AuthRestoring) {
       return MaterialApp(
         title: title,
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.light(),
+        theme: AppTheme.light.toApproximateMaterialTheme(),
         themeMode: ThemeMode.light,
+        builder: _builder,
         home: const _SplashPage(),
       );
     }
-
-    final GoRouter router = ref.watch(routerProvider);
-
     return MaterialApp.router(
       title: title,
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
+      theme: AppTheme.light.toApproximateMaterialTheme(),
       themeMode: ThemeMode.light,
-      routerConfig: router,
+      builder: _builder,
+      routerConfig: ref.watch(routerProvider),
     );
   }
 }
@@ -46,29 +45,16 @@ class _SplashPage extends StatelessWidget {
   const _SplashPage();
 
   @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Text(
-              StarkVmsApp.title,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 20),
-            const SizedBox(
-              height: 24,
-              width: 24,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-          ],
-        ),
+  Widget build(BuildContext context) => FScaffold(
+    child: Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(StarkVmsApp.title, style: context.theme.typography.display.xl),
+          const SizedBox(height: 20),
+          const FCircularProgress(),
+        ],
       ),
-    );
-  }
+    ),
+  );
 }

@@ -24,11 +24,14 @@ class NotFoundPage extends StatelessWidget {
           ? 'That page does not exist.'
           : 'There is nothing at $asked.',
       actions: <Widget>[
-        FButton(mainAxisSize: MainAxisSize.min,
+        FButton(
+          mainAxisSize: MainAxisSize.min,
           onPress: () => context.go(AppRoutes.dashboard),
           child: const Text('Go to dashboard'),
         ),
-        FButton(variant: FButtonVariant.outline, mainAxisSize: MainAxisSize.min,
+        FButton(
+          variant: FButtonVariant.outline,
+          mainAxisSize: MainAxisSize.min,
           onPress: () => context.go(AppRoutes.vehicles),
           child: const Text('Go to vehicles'),
         ),
