@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/session_events.dart';
@@ -29,19 +30,30 @@ class AuthController extends Notifier<AuthState> {
 
   AuthRepository get _repository => ref.read(authRepositoryProvider);
 
+  /// Settles the session exactly once.
+  ///
+  /// Everything here is guarded: whatever goes wrong, the app must leave the
+  /// restoring state, or it would sit on the splash screen for ever.
   Future<void> _restore() async {
-    final String? token = await _repository.storedToken();
-    if (token == null || token.isEmpty) {
-      state = const AuthSignedOut();
-      return;
-    }
-
     try {
+      final String? token = await _repository.storedToken();
+      if (token == null || token.isEmpty) {
+        state = const AuthSignedOut();
+        return;
+      }
+
       final AuthUser user = await _repository.currentUser();
       state = AuthSignedIn(user);
-    } on Object {
-      // A token the API no longer accepts is worth nothing.
-      await _repository.forgetToken();
+    } on Object catch (error, stackTrace) {
+      // A token the API no longer accepts is worth nothing, and a broken
+      // client configuration must still reach the sign-in screen.
+      debugPrint('Session could not be restored: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      try {
+        await _repository.forgetToken();
+      } on Object {
+        // Nothing left to clean up.
+      }
       state = const AuthSignedOut();
     }
   }

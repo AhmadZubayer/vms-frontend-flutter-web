@@ -252,8 +252,10 @@ class _VehicleFormSheetState extends ConsumerState<VehicleFormSheet> {
         const FDivider(),
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+          // Left-aligned so the actions stay clear of anything pinned to the
+          // bottom-right corner of the window.
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
               FButton(
                 variant: FButtonVariant.outline,

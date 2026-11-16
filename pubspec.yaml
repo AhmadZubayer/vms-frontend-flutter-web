@@ -26,10 +26,10 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # Runtime configuration. Edit .env (or the copy in build/web/assets) to
-  # point a build at another API; no URL lives in the Dart code.
+  # Runtime configuration. Edit app_config.env (or the copy in build/web/assets)
+  # to point a build at another API; no URL lives in the Dart code.
   assets:
-    - .env
+    - app_config.env
   fonts:
     - family: Geist
       fonts:

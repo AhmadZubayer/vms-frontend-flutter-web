@@ -40,14 +40,12 @@ class AuthRepository {
     return AuthUser.fromJson(Map<String, dynamic>.from(payload as Map));
   }
 
-  /// Signs the token out on the server, then forgets it locally either way.
-  Future<void> signOut() async {
-    try {
-      await _api.post('/api/auth/logout');
-    } finally {
-      await _tokens.clear();
-    }
-  }
+  /// Forgets the access token.
+  ///
+  /// Tokens are self-contained and short lived, so there is nothing to sign
+  /// out on the server: dropping it here ends the session for this client,
+  /// and the token stops being accepted anywhere once it expires.
+  Future<void> signOut() => _tokens.clear();
 
   Future<String?> storedToken() => _tokens.read();
 

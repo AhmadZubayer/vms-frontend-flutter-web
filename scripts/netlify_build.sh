@@ -2,7 +2,7 @@
 #
 # Builds the Flutter web client on Netlify.
 #
-# Netlify ships no Flutter SDK, so this fetches one, writes the .env the app
+# Netlify ships no Flutter SDK, so this fetches one, writes the app_config.env the app
 # reads at start-up from the site's environment variables, and builds.
 #
 # Required environment variable:
@@ -31,7 +31,7 @@ flutter config --no-analytics --no-cli-animations >/dev/null
 
 # The app reads this file at start-up; it is gitignored, so the deploy writes
 # it from the site's own configuration. No URL is baked into the source.
-printf 'API_BASE_URL=%s\n' "${API_BASE_URL}" > .env
+printf 'API_BASE_URL=%s\n' "${API_BASE_URL}" > app_config.env
 echo "Building against ${API_BASE_URL}"
 
 flutter pub get

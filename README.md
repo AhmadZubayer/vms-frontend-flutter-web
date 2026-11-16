@@ -5,7 +5,7 @@ totals and backend health, and manage vehicles.
 
 ## Configure it
 
-Copy `.env.example` to `.env` and set the API it should talk to. No URL is
+Copy `app_config.env.example` to `app_config.env` and set the API it should talk to. No URL is
 written into the Dart code.
 
 ```
@@ -18,8 +18,12 @@ API_BASE_URL=http://localhost:8080
 | Android emulator against a local API | `http://10.0.2.2:8080` |
 | Deployed | `https://api.example.com` |
 
+The name is deliberately not a dotfile: Netlify and other static hosts
+refuse to publish files starting with a dot, which would leave a deployed
+build with no configuration.
+
 The file is bundled as an asset and read at start-up, so a built web app can be
-re-pointed by editing `build/web/assets/.env` without rebuilding. A
+re-pointed by editing `build/web/assets/app_config.env` without rebuilding. A
 `--dart-define=API_BASE_URL=...` passed at build time wins over the file, which
 suits CI. If neither is set the app stops with a message naming the variable.
 
@@ -37,29 +41,48 @@ flutter run -d chrome
 
 ## Deploy to Netlify
 
-Netlify has no Flutter runtime, so [`netlify.toml`](netlify.toml) runs
-[`scripts/netlify_build.sh`](scripts/netlify_build.sh), which fetches the SDK,
-writes `.env` from the site's own environment variables, and builds.
+Two ways, same result. Either way the Netlify origin has to be added to the
+backend `APP_CORS_ALLOWED_ORIGIN_PATTERNS`, or the browser blocks every call.
 
-1. Push this repository to GitHub.
-2. In Netlify, **Add new site > Import an existing project**, pick the
-   repository. The build command and publish directory come from
-   `netlify.toml`; leave them as Netlify fills them in.
-3. Under **Site configuration > Environment variables** add `API_BASE_URL`,
-   the deployed API with no trailing slash, e.g.
-   `https://stark-vms-api.onrender.com`. The build fails with a clear message
-   if it is missing, rather than shipping a broken app. `FLUTTER_VERSION` is
-   optional and defaults to the version pinned in `netlify.toml`.
-4. Deploy, then add the Netlify origin, e.g. `https://stark-vms.netlify.app`,
-   to the backend `APP_CORS_ALLOWED_ORIGIN_PATTERNS` and redeploy the API.
-   Without that the browser blocks every call.
+### Upload the built folder
 
-`netlify.toml` also rewrites every unmatched path to `index.html`, which the
-app needs because it routes on real paths: without it, reloading
-`/dashboard/vehicles` would 404.
+1. Point `app_config.env` at the deployed API:
 
-To change the API later without a rebuild, edit `assets/.env` in the published
-deploy; to change it permanently, update `API_BASE_URL` and redeploy.
+   ```
+   API_BASE_URL=https://stark-vms-api.onrender.com
+   ```
+
+2. Build:
+
+   ```
+   flutter build web --release
+   ```
+
+3. Drag `build/web` onto the Netlify dashboard (**Sites > Add new site >
+   Deploy manually**), or run `netlify deploy --prod --dir=build/web`.
+
+`web/_redirects` and `web/_headers` are copied into `build/web` by the build,
+so the uploaded folder carries its own routing rules. The rewrite matters: the
+app routes on real paths, and without it a reload of `/dashboard/vehicles`
+returns a Netlify 404.
+
+To re-point an upload at another API without rebuilding, edit
+`build/web/assets/app_config.env` before dragging the folder over.
+
+### Build on Netlify from git
+
+[`netlify.toml`](netlify.toml) runs
+[`scripts/netlify_build.sh`](scripts/netlify_build.sh), which fetches the
+Flutter SDK, writes `app_config.env` from the site environment, and builds. Import the
+repository in Netlify and set one environment variable under **Site
+configuration > Environment variables**:
+
+```
+API_BASE_URL=https://stark-vms-api.onrender.com
+```
+
+`FLUTTER_VERSION` is optional and defaults to the version pinned in
+`netlify.toml`. This route redeploys on every push; the manual upload does not.
 
 ## Routes
 

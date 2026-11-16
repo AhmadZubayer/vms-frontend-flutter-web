@@ -9,5 +9,5 @@
 /flutter_service_worker.js
   Cache-Control: no-cache
 
-/assets/.env
+/assets/app_config.env
   Cache-Control: no-cache

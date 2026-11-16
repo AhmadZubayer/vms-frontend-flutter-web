@@ -254,37 +254,47 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final FThemeData theme = context.theme;
 
-    // The narrow layout already names the page in the header bar, so it
-    // shows the count alone and keeps the row from squeezing the title.
+    // The button is pinned to the top right of the page in both layouts; the
+    // title and count take whatever width is left.
     final Widget titleRow = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        if (wide) ...<Widget>[
-          Flexible(
-            child: Text(
-              'Vehicles',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.typography.display.xl2,
-            ),
-          ),
-          if (count != null) ...<Widget>[
-            const SizedBox(width: 10),
-            FBadge(variant: FBadgeVariant.secondary, child: Text('$count')),
-          ],
-        ] else
-          Expanded(
-            child: Text(
-              count == null
-                  ? 'Registered vehicles'
-                  : '$count registered ${count == 1 ? 'vehicle' : 'vehicles'}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.typography.body.md.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        if (wide) const Spacer(),
+        Expanded(
+          child: wide
+              ? Row(
+                  children: <Widget>[
+                    Flexible(
+                      child: Text(
+                        'Vehicles',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.typography.display.xl2,
+                      ),
+                    ),
+                    if (count != null) ...<Widget>[
+                      const SizedBox(width: 10),
+                      FBadge(
+                        variant: FBadgeVariant.secondary,
+                        child: Text('$count'),
+                      ),
+                    ],
+                  ],
+                )
+              // The header bar already names the page on a narrow window.
+              : Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    count == null
+                        ? 'Registered vehicles'
+                        : '$count registered ${count == 1 ? 'vehicle' : 'vehicles'}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.typography.body.md.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+        ),
         const SizedBox(width: 12),
         FButton(
           mainAxisSize: MainAxisSize.min,

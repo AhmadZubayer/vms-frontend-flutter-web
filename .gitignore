@@ -44,5 +44,5 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Local runtime configuration; copy .env.example instead
-.env
+# Local runtime configuration; copy app_config.env.example instead
+app_config.env
