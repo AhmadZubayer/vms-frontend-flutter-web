@@ -37,12 +37,14 @@ class ApiException implements Exception {
     final Map<String, String> fields = <String, String>{};
 
     if (body is Map) {
-      final Object? detail = body['detail'] ?? body['title'] ?? body['message'];
+      // The API answers failures in the same envelope as successes:
+      // { "statusCode": 400, "message": "...", "data": [field violations] }.
+      final Object? detail = body['message'] ?? body['detail'] ?? body['title'];
       if (detail is String && detail.trim().isNotEmpty) {
         message = detail.trim();
       }
 
-      final Object? errors = body['errors'];
+      final Object? errors = body['data'] ?? body['errors'];
       if (errors is List) {
         for (final Object? entry in errors) {
           if (entry is Map) {

@@ -1,153 +1,138 @@
-# Stark VMS Flutter client
+## View Full Documentation: [github.com/AhmadZubayer/vms-backend-java-springboot/blob/main/README.md](https://github.com/AhmadZubayer/vms-backend-java-springboot/blob/main/README.md)
 
-Operator client for the Stark Vehicle Management API: sign in, read the registry
-totals and backend health, and manage vehicles.
+## 1. Introduction
 
-## Configure it
+A small web app for keeping track of a company's vehicles. An operator signs in,
+sees how many vehicles there are and what state they are in, and adds, edits,
+searches or deletes them. This repository is the frontend: a Flutter web app
+that talks to the Spring Boot API over a PostgreSQL database.
 
-Copy `app_config.env.example` to `app_config.env` and set the API it should talk to. No URL is
-written into the Dart code.
+### 1.1 User journey
 
-```
-API_BASE_URL=http://localhost:8080
-```
+Open app → sign in with email and password → land on dashboard → read total
+vehicles, status counts and server health → open Vehicles.
 
-| Where it runs | Value |
-| --- | --- |
-| Web or desktop against a local API | `http://localhost:8080` |
-| Android emulator against a local API | `http://10.0.2.2:8080` |
-| Deployed | `https://api.example.com` |
+Search or filter by status → add a vehicle, or use the row menu to update or
+delete one → confirm → table and counts refresh → log out.
 
-The name is deliberately not a dotfile: Netlify and other static hosts
-refuse to publish files starting with a dot, which would leave a deployed
-build with no configuration.
+## 2. Links
 
-The file is bundled as an asset and read at start-up, so a built web app can be
-re-pointed by editing `build/web/assets/app_config.env` without rebuilding. A
-`--dart-define=API_BASE_URL=...` passed at build time wins over the file, which
-suits CI. If neither is set the app stops with a message naming the variable.
+| What                  | Where                                                                           |
+| --------------------- | ------------------------------------------------------------------------------- |
+| Deployed app          | https://stark-vms-frontend-flutter.netlify.app                                  |
+| Backend API           | https://vms-backend-java-springboot.onrender.com                                |
+| API docs (Swagger UI) | https://vms-backend-java-springboot.onrender.com/docs                           |
+| GitHub, backend       | https://github.com/AhmadZubayer/vms-backend-java-springboot                     |
+| GitHub, frontend      | https://github.com/AhmadZubayer/vms-frontend-flutter-web                        |
+| Project documentation | https://github.com/AhmadZubayer/vms-backend-java-springboot/blob/main/README.md |
 
-Whatever origin serves this app has to appear in the backend
-`APP_CORS_ALLOWED_ORIGIN_PATTERNS`, or the browser blocks the calls.
+## 3. Screenshots
 
-## Run it
+**1. Sign in**
 
-Start `vms-backend` first, then:
+![Sign in](screenshots/1.jpg)
 
-```
-flutter pub get
-flutter run -d chrome
-```
+**2. Dashboard, registry totals and server status**
 
-## Deploy to Netlify
+![Dashboard, registry totals and server status](screenshots/2.jpg)
 
-Two ways, same result. Either way the Netlify origin has to be added to the
-backend `APP_CORS_ALLOWED_ORIGIN_PATTERNS`, or the browser blocks every call.
+**3. Vehicle list**
 
-### Upload the built folder
+![Vehicle list](screenshots/3.jpg)
 
-1. Point `app_config.env` at the deployed API:
+**4. Status filter**
 
-   ```
-   API_BASE_URL=https://stark-vms-api.onrender.com
-   ```
+![Status filter](screenshots/4.jpg)
 
-2. Build:
+**5. Add new vehicle**
 
-   ```
-   flutter build web --release
-   ```
+![Add new vehicle](screenshots/5.jpg)
 
-3. Drag `build/web` onto the Netlify dashboard (**Sites > Add new site >
-   Deploy manually**), or run `netlify deploy --prod --dir=build/web`.
+**6. Duplicate vehicle number is refused**
 
-`web/_redirects` and `web/_headers` are copied into `build/web` by the build,
-so the uploaded folder carries its own routing rules. The rewrite matters: the
-app routes on real paths, and without it a reload of `/dashboard/vehicles`
-returns a Netlify 404.
+![Duplicate vehicle number is refused](screenshots/6.jpg)
 
-To re-point an upload at another API without rebuilding, edit
-`build/web/assets/app_config.env` before dragging the folder over.
+**7. Update vehicle**
 
-### Build on Netlify from git
+![Update vehicle](screenshots/7.jpg)
 
-[`netlify.toml`](netlify.toml) runs
-[`scripts/netlify_build.sh`](scripts/netlify_build.sh), which fetches the
-Flutter SDK, writes `app_config.env` from the site environment, and builds. Import the
-repository in Netlify and set one environment variable under **Site
-configuration > Environment variables**:
+**8. Delete confirmation**
+
+![Delete confirmation](screenshots/8.jpg)
+
+**9. Search**
+
+![Search](screenshots/9.jpg)
+
+**10. Filter by status**
+
+![Filter by status](screenshots/10.jpg)
+## 4. Folder and file structure
 
 ```
-API_BASE_URL=https://stark-vms-api.onrender.com
+vms_frontend_flutter/
+├── app_config.env                    API URL read at start-up, gitignored
+├── app_config.env.example            copy this to app_config.env
+├── netlify.toml                      build command, SPA rewrite, headers
+├── pubspec.yaml                      dependencies, fonts, the env asset
+├── analysis_options.yaml             lint rules
+├── README.md                         this document
+├── screenshots/                      the images above
+├── scripts/
+│   └── netlify_build.sh              fetches Flutter, writes the env, builds
+├── assets/
+│   └── fonts/                        Geist, bundled with the app
+├── web/
+│   ├── index.html                    page shell
+│   ├── _redirects                    every path falls back to index.html
+│   ├── _headers                      security and cache headers
+│   ├── manifest.json, favicon.png, icons/
+├── test/
+│   └── forui_migration_test.dart
+└── lib/
+    ├── main.dart                     loads the config, then runs the app
+    ├── app/
+    │   ├── app.dart                  MaterialApp, splash while restoring
+    │   ├── router.dart               go_router, redirects by session
+    │   ├── routes.dart               every path in one place
+    │   ├── theme.dart                forui theme, colours and typography
+    │   └── config_error_app.dart     shown when API_BASE_URL is missing
+    ├── core/
+    │   ├── config/app_config.dart    reads app_config.env
+    │   ├── network/
+    │   │   ├── api_client.dart       Dio, bearer token, data unwrapping
+    │   │   ├── api_exception.dart    reads the failure envelope
+    │   │   └── session_events.dart   carries 401 to the auth layer
+    │   ├── platform/url_strategy*.dart  path URLs on the web only
+    │   ├── storage/token_storage.dart   the access token
+    │   └── widgets/
+    │       ├── app_toast.dart        top-centre toasts
+    │       ├── confirm_dialog.dart   delete confirmation
+    │       ├── responsive_sheet.dart right sheet, bottom on mobile
+    │       └── state_views.dart      loading, error and empty states
+    └── features/
+        ├── auth/
+        │   ├── data/auth_repository.dart
+        │   ├── domain/auth_state.dart, auth_user.dart
+        │   └── presentation/auth_controller.dart, login_page.dart
+        ├── dashboard/
+        │   ├── data/health_repository.dart
+        │   ├── domain/server_health.dart
+        │   └── presentation/
+        │       ├── dashboard_shell.dart     side menu frame
+        │       ├── overview_page.dart       the two cards
+        │       └── widgets/side_menu.dart, vehicle_totals_card.dart,
+        │                   server_status_card.dart
+        ├── vehicles/
+        │   ├── data/vehicles_repository.dart
+        │   ├── domain/vehicle.dart, vehicle_status.dart, vehicle_type.dart,
+        │   │          paged_result.dart, vehicle_stats.dart
+        │   └── presentation/
+        │       ├── vehicles_controller.dart  query, page, mutations
+        │       ├── vehicles_page.dart        header, table, pager
+        │       └── widgets/vehicles_table.dart, vehicle_form_sheet.dart,
+        │                   pagination_bar.dart, status_chip.dart
+        └── errors/
+            └── presentation/not_found_page.dart, unauthorized_page.dart,
+                             error_page_scaffold.dart
 ```
-
-`FLUTTER_VERSION` is optional and defaults to the version pinned in
-`netlify.toml`. This route redeploys on every push; the manual upload does not.
-
-## Routes
-
-| Path | Page |
-| --- | --- |
-| `/login` | Sign-in form |
-| `/dashboard` | Registry totals and server status |
-| `/dashboard/vehicles` | Vehicle list with search, status filter, and paging |
-| `/unauthorized` | Shown when the API rejects the session |
-| `/404` | Shown for any unknown path |
-
-`/` redirects to `/dashboard`. A signed-out visitor is sent to `/login`, and a
-session the API ends mid-use lands on `/unauthorized`. On the web the paths are
-served without a `#`, so a reload of `/dashboard/vehicles` needs the server to
-fall back to `index.html` (`flutter run` already does).
-
-## Layout
-
-Feature-first, with one shared core:
-
-```
-lib/
-  main.dart                     entry point
-  app/                          MaterialApp, router, routes, theme
-  core/
-    config/                     base URL and layout breakpoints
-    network/                    Dio client, API failures, session events
-    platform/                   web-only path URL strategy
-    storage/                    access token storage
-    widgets/                    toast, confirm dialog, side sheet, state views
-  features/
-    auth/        data | domain | presentation
-    dashboard/   data | domain | presentation
-    vehicles/    data | domain | presentation
-    errors/      presentation
-```
-
-Inside a feature, `domain` holds plain models, `data` holds the repository that
-talks to the API, and `presentation` holds the pages, controllers, and widgets.
-A feature may use `core`; it never reaches into another feature's `data`.
-
-## State
-
-Riverpod holds everything:
-
-| Provider | Role |
-| --- | --- |
-| `authControllerProvider` | The session: restore on launch, sign in, sign out |
-| `vehicleQueryProvider` | Page, page size, search term, status filter |
-| `vehiclesPageProvider` | The page of vehicles matching that query |
-| `vehicleStatsProvider` | Registry totals for the dashboard |
-| `serverHealthProvider` | `GET /api/health` |
-| `vehicleMutationsProvider` | Create, update, delete, then refresh both reads |
-
-`ApiClient` attaches the bearer token to every request except the login call. A
-`401` on any other call is reported through `SessionEvents`, which makes
-`AuthController` drop the token and the router show `/unauthorized`.
-
-## Notes
-
-- Searching waits 350 ms after the last keystroke, then asks the API; the status
-  dropdown and the pager are server-side too, so the table never filters a page
-  it already has.
-- Every create, update, and delete reports itself in a toast at the top middle
-  of the screen. Deleting asks for confirmation first.
-- The side menu is permanent at 1000 px and wider, and sits behind a drawer
-  below that; the add and update form slides in from the right on a wide window
-  and up from the bottom on a narrow one.
